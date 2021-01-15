@@ -54,4 +54,5 @@ public:
 	//opcodes
 	void LUI(Instruction instr);
 	void ORI(Instruction instr);
+	void SW(Instruction instr);
 };

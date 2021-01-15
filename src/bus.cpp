@@ -21,6 +21,78 @@ Bus::~Bus()
 {
 }
 
+template u8  Bus::read_value(u32 addr);
+template u16 Bus::read_value(u32 addr);
+template u32 Bus::read_value(u32 addr);
+template <typename T> auto Bus::read_value(u32 addr) -> T
+{
+	//TODO: unaligned memory access
+	addr &= REGION_MASK[addr >> 29];
+	T read = 0;
+	switch (addr)
+	{
+	case KERNEL_START ... KERNEL_END:
+		printf("[Memory] Addr: 0x%08X Unmapped memory read from KERNEL\n", addr);
+		break;
+	case EXPANSION1_START ... EXPANSION1_END:
+		printf("[Memory] Addr: 0x%08X Unmapped memory read from EXPANSION 1\n", addr);
+		break;
+	case SCRATCHPAD_START ... SCRATCHPAD_END:
+		printf("[Memory] Addr: 0x%08X Unmapped memory read from SCRATCHPAD\n", addr);
+		break;
+	case MMIO_START ... MMIO_END:
+		switch (addr)
+		{
+		case (0x1f801010):
+			printf("[MMIO] Read - Addr: 0x%08X\n", addr);
+			read = helpers::read_vector<T>(mmio.data(), addr - MMIO_START);
+			break;
+		default:
+			printf("[Memory] Addr: 0x%08X Unmapped memory read from MMIO\n", addr);
+		}
+		break;
+	case BIOS_START ... BIOS_END:
+		read = helpers::read_vector<T>(bios.data(), addr - BIOS_START);
+		break;
+	}
+	return read;
+}
+
+template void Bus::write_value(u32 addr, u8  value);
+template void Bus::write_value(u32 addr, u16 value);
+template void Bus::write_value(u32 addr, u32 value);
+template <typename T> auto Bus::write_value(u32 addr, T value)->void
+{
+	//TODO: unaligned memory access
+	addr &= REGION_MASK[addr >> 29];
+	switch (addr)
+	{
+	case KERNEL_START ... KERNEL_END:
+		printf("[Memory] Addr: 0x%08X Data: 0x%08X Unmapped memory write from KERNEL\n", addr, value);
+		break;
+	case EXPANSION1_START ... EXPANSION1_END:
+		printf("[Memory] Addr: 0x%08X Data: 0x%08X Unmapped memory write from EXPANSION 1\n", addr, value);
+		break;
+	case SCRATCHPAD_START ... SCRATCHPAD_END:
+		printf("[Memory] Addr: 0x%08X Data: 0x%08X Unmapped memory write from SCRATCHPAD\n", addr, value);
+		break;
+	case MMIO_START ... MMIO_END:
+		switch (addr)
+		{
+		case (0x1f801010):
+			printf("[MMIO][WARN] Write - Addr: 0x%08X Data: 0x%08X\n", addr, value);
+			helpers::write_vector<T>(mmio.data(), addr - MMIO_START, value);
+			break;
+		default:
+			printf("[Memory] Addr: 0x%08X Data: 0x%08X Unmapped memory write from MMIO\n", addr, value);
+		}
+		break;
+	case BIOS_START ... BIOS_END:
+		helpers::write_vector<T>(bios.data(), addr - BIOS_START, value);
+		break;
+	}
+}
+
 void Bus::reset()
 {
 	std::fill(kernel.begin(), kernel.end(), 0);

@@ -20,51 +20,8 @@ public:
 
 	Bus(Emulator* psx);
 	~Bus();
-	template <typename T> auto read_value(u32 addr)->T
-	{
-		addr &= REGION_MASK[addr >> 29];
-		switch (addr)
-		{
-		case KERNEL_START ... KERNEL_END:
-			printf("[Memory] Addr: 0x%08X Unmapped memory read from KERNEL\n", addr);
-			break;
-		case EXPANSION1_START ... EXPANSION1_END:
-			printf("[Memory] Addr: 0x%08X Unmapped memory read from EXPANSION 1\n", addr);
-			break;
-		case SCRATCHPAD_START ... SCRATCHPAD_END:
-			printf("[Memory] Addr: 0x%08X Unmapped memory read from SCRATCHPAD\n", addr);
-			break;
-		case MMIO_START ... MMIO_END:
-			printf("[Memory] Addr: 0x%08X Unmapped memory read from MMIO\n", addr);
-			break;
-		case BIOS_START ... BIOS_END:
-			return helpers::read_vector<T>(bios.data(), addr - BIOS_START);
-			break;
-		}
-		return 0;
-	} //TODO: explicit templat instantiation in a .cpp file
-	template <typename T> auto write_value(u32 addr, T value)
-	{
-		addr &= REGION_MASK[addr >> 29];
-		switch (addr)
-		{
-		case KERNEL_START ... KERNEL_END:
-			printf("[Memory] Addr: 0x%08X Unmapped memory write from KERNEL\n", addr);
-			break;
-		case EXPANSION1_START ... EXPANSION1_END:
-			printf("[Memory] Addr: 0x%08X Unmapped memory write from EXPANSION 1\n", addr);
-			break;
-		case SCRATCHPAD_START ... SCRATCHPAD_END:
-			printf("[Memory] Addr: 0x%08X Unmapped memory write from SCRATCHPAD\n", addr);
-			break;
-		case MMIO_START ... MMIO_END:
-			printf("[Memory] Addr: 0x%08X Unmapped memory write from MMIO\n", addr);
-			break;
-		case BIOS_START ... BIOS_END:
-			return helpers::write_vector<T>(bios.data(), addr - BIOS_START, value);
-			break;
-		}
-	}
+	template <typename T> auto read_value(u32 addr)->T;
+	template <typename T> auto write_value(u32 addr, T value)->void;
 	void load_bios();
 	void reset();
 };

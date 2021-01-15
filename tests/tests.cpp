@@ -20,6 +20,9 @@ TEST_CASE("TEST: Basic Instructions")
 	CHECK(test_psx.he_cpu.get_gpr(0x8) == 0x00130000); //LUI
 	test_psx.he_cpu.intepret();
 	CHECK(test_psx.he_cpu.get_gpr(0x8) == 0x0013243f); //ORI
+	test_psx.he_cpu.intepret(); //Another LUI
+	test_psx.he_cpu.intepret();
+	CHECK(test_psx.bus.read_value<u32>(0x1f801010) == 0x8); //SW
 }
 
 TEST_CASE("Test: Bus Read/Writes")

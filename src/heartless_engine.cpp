@@ -40,12 +40,9 @@ void HeartlessEngine::intepret()
 
 	switch (instr.i.op)
 	{
-	case 0b001111:
-		LUI(instr);
-		break;
-	case 0b001101:
-		ORI(instr);
-		break;
+	case 0b001111: LUI(instr); break;
+	case 0b001101: ORI(instr); break;
+	case 0b101011: SW(instr);  break;
 	default:
 		printf("[CPU] Unimplemented opcode : %08X\n", instr.raw);
 		exit(1);
@@ -68,6 +65,13 @@ void HeartlessEngine::ORI(Instruction instr)
 	auto target = instr.i.rt;
 	set_gpr(target, get_gpr(source) | imm);
 	printf("ORI: $%X, $%X, 0x%02X\n", source, target, imm);
+}
+
+void HeartlessEngine::SW(Instruction instr)
+{
+	auto addr = helpers::sign_extend16(instr.i.imm) + get_gpr(instr.i.rs);
+	auto target = instr.i.rt;
+	psx->bus.write_value(addr, target);
 }
 
 /*
