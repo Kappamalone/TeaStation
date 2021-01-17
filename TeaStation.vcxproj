@@ -88,7 +88,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>src;external</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>src;external;include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -103,7 +103,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>src;external</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>src;external;include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -142,12 +142,20 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\bus.cpp" />
+    <ClCompile Include="src\cop0.cpp" />
     <ClCompile Include="src\emulator.cpp" />
     <ClCompile Include="src\heartless_engine.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="tests\tests.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\bus.h" />
+    <ClInclude Include="include\consts.h" />
+    <ClInclude Include="include\cop0.h" />
+    <ClInclude Include="include\emulator.h" />
+    <ClInclude Include="include\heartless_engine.h" />
+    <ClInclude Include="include\helpers.h" />
+    <ClInclude Include="include\types.h" />
     <ClInclude Include="src\bus.h" />
     <ClInclude Include="src\consts.h" />
     <ClInclude Include="src\emulator.h" />

@@ -2,7 +2,7 @@
 #include <emulator.h>
 #include <types.h>
 
-HeartlessEngine::HeartlessEngine(Emulator* psx)
+HeartlessEngine::HeartlessEngine(Emulator* psx) : cp0()
 {
 	this->psx = psx;
 	reset();
@@ -64,7 +64,7 @@ void HeartlessEngine::decode_execute(Instruction instr)
 	case 0b001111: LUI(instr);   break;
 	case 0b001101: ORI(instr);   break;
 	case 0b101011: SW(instr);    break;
-	case 0b010000: cop0_decode_execute(instr); break;
+	case 0b010000: cp0.decode_execute(instr); break;
 	default:
 		printf("[CPU] Unimplemented opcode : %08X\n", instr.raw);
 		exit(1);
@@ -73,12 +73,6 @@ void HeartlessEngine::decode_execute(Instruction instr)
 
 void HeartlessEngine::cop0_decode_execute(Instruction instr)
 {
-	switch (instr.i.rs)
-	{
-	case 0b00100: MTC0(instr); break;
-	default:
-		printf("[COP0] Unimplemented opcode : %08X\n", instr.raw);
-	}
 }
 
 //INSTRUCTIONS========================================
@@ -95,7 +89,7 @@ void HeartlessEngine::SW(Instruction instr)
 	printf("%08X | SW: $%02X, $%08X\n", pc - 4, target, addr);
 }
 
-//ALU=================================================
+//Computational Instructions=================================================
 
 //Load upper Immediate
 //Loads immediate value into upper 16 bits of rt
@@ -148,7 +142,7 @@ void HeartlessEngine::ADDIU(Instruction instr)
 	printf("%08X | ADDIU: $%02X, $%02X, $%08X\n", pc - 4, target, source, imm);
 }
 
-//BRANCHES===========================================
+//Jump and Branch Instructions===========================================
 
 //Jump
 void HeartlessEngine::J(Instruction instr)
@@ -164,9 +158,3 @@ void HeartlessEngine::J(Instruction instr)
 void HeartlessEngine::MTC0(Instruction instr)
 {
 }
-
-/*
-void HeartlessEngine::(Instruction instr)
-{
-}
-*/

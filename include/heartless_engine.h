@@ -1,11 +1,13 @@
 #pragma once
 #include <array>
 #include <types.h>
+#include <cop0.h>
 
 //Forward declaration
 class Emulator;
 
 //Bitfield to obtain required parameters for i,j and r type encodings
+//TODO: make op parameter accessible
 union Instruction
 {
 	u32 raw;
@@ -33,16 +35,22 @@ union Instruction
 		unsigned op : 6;
 	} r;
 
-	struct cop_0 //COP0 coprocessor
+	struct cop_0 //COP0 Instruction
 	{
-		unsigned 16;
-	};
+		unsigned pad0 : 11; //Not used
+		unsigned rd : 5;
+		unsigned rt : 5;
+		unsigned cop_op : 5;
+		unsigned pad1 : 6; //Not used
+	} cop0;
 };
 
+//TODO: separate COP0 into its own class
 class HeartlessEngine
 {
 public:
 	Emulator* psx;
+	cop0 cp0;
 
 	std::array<u32, 32> gpr; //R0 is always 0, R31 is link reg
 	u32 HI; //Stores mult high result/div remainder

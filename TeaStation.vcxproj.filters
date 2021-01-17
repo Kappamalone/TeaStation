@@ -30,6 +30,9 @@
     <ClCompile Include="src\emulator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\cop0.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\consts.h">
@@ -48,6 +51,27 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\bus.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\bus.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\consts.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\emulator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\heartless_engine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\helpers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\cop0.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
