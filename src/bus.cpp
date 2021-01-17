@@ -41,15 +41,8 @@ template <typename T> auto Bus::read_value(u32 addr) -> T
 		printf("[Memory] Addr: 0x%08X Unmapped memory read from SCRATCHPAD\n", addr);
 		break;
 	case MMIO_START ... MMIO_END:
-		switch (addr)
-		{
-		case (0x1f801010):
-			printf("[MMIO] Read - Addr: 0x%08X\n", addr);
-			read = helpers::read_vector<T>(mmio.data(), addr - MMIO_START);
-			break;
-		default:
-			printf("[Memory] Addr: 0x%08X Unmapped memory read from MMIO\n", addr);
-		}
+		printf("[Memory] Addr: 0x%08X Mapped-ish? memory read from MMIO\n", addr);
+		read = helpers::read_vector<T>(mmio.data(), addr - MMIO_START);
 		break;
 	case BIOS_START ... BIOS_END:
 		read = helpers::read_vector<T>(bios.data(), addr - BIOS_START);
@@ -79,8 +72,44 @@ template <typename T> auto Bus::write_value(u32 addr, T value)->void
 	case MMIO_START ... MMIO_END:
 		switch (addr)
 		{
-		case (0x1f801010):
-			printf("[MMIO][WARN] Write - Addr: 0x%08X Data: 0x%08X\n", addr, value);
+		case 0x1f801000:
+			printf("[MMIO][EXPANSION 1 BASEADDR]  Addr: 0x%08X Data: 0x%08X\n", addr, value);
+			helpers::write_vector<T>(mmio.data(), addr - MMIO_START, value);
+			break;
+		case 0x1f801004:
+			printf("[MMIO][EXPANSION 2 BASEADDR]  Addr: 0x%08X Data: 0x%08X\n", addr, value);
+			helpers::write_vector<T>(mmio.data(), addr - MMIO_START, value);
+			break;
+		case 0x1f801008:
+			printf("[MMIO][EXPANSION 1 DELAY/SIZE]  Addr: 0x%08X Data: 0x%08X\n", addr, value);
+			helpers::write_vector<T>(mmio.data(), addr - MMIO_START, value);
+			break;
+		case 0x1f80100C:
+			printf("[MMIO][EXPANSION 3 DELAY/SIZE] Addr: 0x%08X Data: 0x%08X\n", addr, value);
+			helpers::write_vector<T>(mmio.data(), addr - MMIO_START, value);
+			break;
+		case 0x1f801010:
+			printf("[MMIO][BIOS ROM] Addr: 0x%08X Data: 0x%08X\n", addr, value);
+			helpers::write_vector<T>(mmio.data(), addr - MMIO_START, value);
+			break;
+		case 0x1f801014:
+			printf("[MMIO][SPU_DELAY] Addr: 0x%08X Data: 0x%08X\n", addr, value);
+			helpers::write_vector<T>(mmio.data(), addr - MMIO_START, value);
+			break;
+		case 0x1f801018:
+			printf("[MMIO][CDROM_DELAY] Addr: 0x%08X Data: 0x%08X\n", addr, value);
+			helpers::write_vector<T>(mmio.data(), addr - MMIO_START, value);
+			break;
+		case 0x1f80101C:
+			printf("[MMIO][EXPANSION 2 DELAY/SIZE] Addr: 0x%08X Data: 0x%08X\n", addr, value);
+			helpers::write_vector<T>(mmio.data(), addr - MMIO_START, value);
+			break;
+		case 0x1f801020:
+			printf("[MMIO][COM_DELAY] Addr: 0x%08X Data: 0x%08X\n", addr, value);
+			helpers::write_vector<T>(mmio.data(), addr - MMIO_START, value);
+			break;
+		case 0x1f801060:
+			printf("[MMIO][RAM_SIZE] Addr: 0x%08X Data: 0x%08X\n", addr, value);
 			helpers::write_vector<T>(mmio.data(), addr - MMIO_START, value);
 			break;
 		default:

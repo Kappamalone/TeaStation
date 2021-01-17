@@ -15,14 +15,19 @@ TEST_CASE("Test: Resetting Components")
 TEST_CASE("TEST: Basic Instructions")
 {
 	test_psx.reset();
-	test_psx.he_cpu.intepret();
+	test_psx.he_cpu.intepret(); //Pipeline
 
+	test_psx.he_cpu.intepret();
 	CHECK(test_psx.he_cpu.get_gpr(0x8) == 0x00130000); //LUI
 	test_psx.he_cpu.intepret();
 	CHECK(test_psx.he_cpu.get_gpr(0x8) == 0x0013243f); //ORI
-	test_psx.he_cpu.intepret(); //Another LUI
 	test_psx.he_cpu.intepret();
-	CHECK(test_psx.bus.read_value<u32>(0x1f801010) == 0x8); //SW
+	test_psx.he_cpu.intepret();
+	CHECK(test_psx.bus.read_value<u32>(0x1f801010) == 0x0013243f); //SW
+	test_psx.he_cpu.intepret(); //SLL, except it's a NOP
+	test_psx.he_cpu.intepret();
+	CHECK(test_psx.he_cpu.get_gpr(0x8) == 0x00000B88); //ADDIu
+	test_psx.he_cpu.intepret(); //LUI
 }
 
 TEST_CASE("Test: Bus Read/Writes")
