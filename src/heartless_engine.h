@@ -64,7 +64,6 @@ public:
 	void set_gpr(u32 reg, u32 value);
 	void intepret();
 	void decode_execute(Instruction instr);
-	void cop0_decode_execute(Instruction instr);
 	void reset();
 
 	//INSTRUCTIONS
@@ -77,13 +76,12 @@ public:
 	void SLL(Instruction instr);
 	void OR(Instruction instr);
 	void ORI(Instruction instr);
+	void ADDI(Instruction instr);
 	void ADDIU(Instruction instr);
 
 	//Jump and Branch Instructions
 	void J(Instruction instr);
+	void BNE(Instruction instr);
 
 	//Special
-
-	//COP0
-	void MTC0(Instruction instr);
 };

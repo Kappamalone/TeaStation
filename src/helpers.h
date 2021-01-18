@@ -4,7 +4,6 @@
 namespace helpers
 {
 	//TODO: what the hell does constexpr do
-	//TODO: should all functions have trailing return types?
 
 	//Reads length-variable value from a vector
 	template <typename T>
@@ -23,5 +22,12 @@ namespace helpers
 	//Sign extends u16
 	static auto sign_extend16(u32 value) -> u32 {
 		return (u32)(s32)(s16)(value);
+	}
+
+	//Checks if bit is set from lsb
+	template <typename T>
+	static constexpr auto bitset(T value, int place) -> bool
+	{
+		return value & (1 << place);
 	}
 }

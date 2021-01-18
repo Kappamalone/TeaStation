@@ -2,10 +2,11 @@
 #include <emulator.h>
 #include <types.h>
 
-HeartlessEngine::HeartlessEngine(Emulator* psx) : cp0()
+HeartlessEngine::HeartlessEngine(Emulator* psx) : cp0(this)
 {
 	this->psx = psx;
 	reset();
+	cp0.reset();
 }
 
 HeartlessEngine::~HeartlessEngine()
@@ -14,10 +15,12 @@ HeartlessEngine::~HeartlessEngine()
 
 void HeartlessEngine::reset()
 {
+	cp0.reset();
 	std::fill(gpr.begin(), gpr.end(), 0);
-	HI = LO = 0;
-	pc = 0;
-	next_pc = 0xbfc00000;
+	HI = 0;
+	LO = 0;
+	pc = 0xbfc0'0000;
+	next_pc = 0xbfc0'0004;
 }
 
 u32 HeartlessEngine::get_gpr(u32 reg)
@@ -27,9 +30,7 @@ u32 HeartlessEngine::get_gpr(u32 reg)
 
 void HeartlessEngine::set_gpr(u32 reg, u32 value)
 {
-	if (reg != 0) {
-		gpr[reg] = value;
-	}
+	gpr[reg] = value;
 	gpr[0] = 0; //Just to be safe
 }
 
@@ -60,6 +61,8 @@ void HeartlessEngine::decode_execute(Instruction instr)
 		}
 		break;
 	case 0b000010: J(instr);     break;
+	case 0b000101: BNE(instr);   break;
+	case 0b001000: ADDI(instr);  break;
 	case 0b001001: ADDIU(instr); break;
 	case 0b001111: LUI(instr);   break;
 	case 0b001101: ORI(instr);   break;
@@ -71,10 +74,6 @@ void HeartlessEngine::decode_execute(Instruction instr)
 	}
 }
 
-void HeartlessEngine::cop0_decode_execute(Instruction instr)
-{
-}
-
 //INSTRUCTIONS========================================
 //Load and store Instructions
 
@@ -82,11 +81,19 @@ void HeartlessEngine::cop0_decode_execute(Instruction instr)
 //Stores word at addr+s16
 void HeartlessEngine::SW(Instruction instr)
 {
-	auto source = instr.i.rs;
-	auto addr = helpers::sign_extend16(instr.i.imm) + get_gpr(source);
-	auto target = instr.i.rt;
-	psx->bus.write_value(addr, get_gpr(target));
-	printf("%08X | SW: $%02X, $%08X\n", pc - 4, target, addr);
+	//SR handles whether or not the write goes to cache or memory
+	if (!helpers::bitset(cp0.cp_regs[SR], 16)) 
+	{
+		auto source = instr.i.rs;
+		auto addr = helpers::sign_extend16(instr.i.imm) + get_gpr(source);
+		auto target = instr.i.rt;
+		psx->bus.write_value(addr, get_gpr(target));
+		printf("%08X | SW: $%02X, $%08X\n", pc - 4, target, addr);
+	}
+	else
+	{
+		printf("CACHE WRITE IGNORED\n");
+	}
 }
 
 //Computational Instructions=================================================
@@ -131,6 +138,26 @@ void HeartlessEngine::ORI(Instruction instr)
 	printf("%08X | ORI: $%X, $%X, $%02X\n", pc - 4, target, source, imm);
 }
 
+//Add Immediate
+//Ads imm+s16 and traps on signed overflow
+void HeartlessEngine::ADDI(Instruction instr)
+{
+	auto source_reg = get_gpr(instr.i.rs);
+	auto target = instr.i.rt;
+	auto imm = helpers::sign_extend16(instr.i.imm);
+	auto result = source_reg + imm;
+	
+	bool overflow = ((source_reg ^ result) & (imm ^ result)) >> 31; //TODO: understand this better
+	if (overflow)
+	{
+		printf("ADDI | Raise exception!\n");
+		return;
+	}
+	
+	set_gpr(target, result);
+	printf("%08X | ADDI: $%X, $%X, $%04X\n", pc - 4, target,source_reg,imm);
+}
+
 //Add Upper Immediate
 //Adds imm+s16 and stores to rt
 void HeartlessEngine::ADDIU(Instruction instr)
@@ -145,6 +172,7 @@ void HeartlessEngine::ADDIU(Instruction instr)
 //Jump and Branch Instructions===========================================
 
 //Jump
+//Jumps to PC top 4 bits || jump target shifted left by 2 bits
 void HeartlessEngine::J(Instruction instr)
 {
 	auto addr = (pc & 0xf0000000) | (instr.j.target << 2);
@@ -152,9 +180,21 @@ void HeartlessEngine::J(Instruction instr)
 	printf("%08X | J: $%08X\n", pc - 4, addr);
 }
 
-//SPECIAL============================================
-
-//COP0===============================================
-void HeartlessEngine::MTC0(Instruction instr)
+//Branch if not equal
+//Branches to relative addr if two regs aren't equal
+//TODO: right branch function
+void HeartlessEngine::BNE(Instruction instr)
 {
+	auto taken = false;
+	auto source = instr.i.rs;
+	auto target = instr.i.rt;
+	auto offset = helpers::sign_extend16(instr.i.imm << 2);
+	if (get_gpr(source) != get_gpr(target))
+	{
+		taken = true;
+		next_pc += offset - 4; //-4 to compensate for the auto increment done by fetching instructions
+	}
+	printf("%08X | BNE [%s]: $%02X, $%02X, $%08X\n", pc - 4, taken ? "taken" : "not taken", source, target, offset);
 }
+
+//SPECIAL============================================

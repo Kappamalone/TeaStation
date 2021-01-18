@@ -74,5 +74,8 @@
     <ClInclude Include="include\cop0.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\cop0.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

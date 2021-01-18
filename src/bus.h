@@ -7,6 +7,12 @@
 //Forward declarations
 class Emulator;
 
+//Why can't auto deduce type here?
+constexpr std::array <u32, 8> REGION_MASK = { 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, //KUSEG: 2048 MB
+											  0x7fffffff, //KSEG0: 512MB
+											  0x1fffffff, //KSEG1: 512MB
+											  0xffffffff, 0xffffffff };  //KSEG2: 1024MB
+
 class Bus
 {
 public:
