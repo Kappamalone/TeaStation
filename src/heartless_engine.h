@@ -53,6 +53,7 @@ public:
 	cop0 cp0;
 
 	std::array<u32, 32> gpr; //R0 is always 0, R31 is link reg
+	std::array<u32, 2> load_d_slot; //Load delay of rt and value
 	u32 HI; //Stores mult high result/div remainder
 	u32 LO; //Stores mult low/div quotient
 	u32 pc; //Program counter
@@ -62,6 +63,9 @@ public:
 	~HeartlessEngine();
 	u32 get_gpr(u32 reg);
 	void set_gpr(u32 reg, u32 value);
+	void set_load_delay(u32 reg, u32 value);
+	void execute_load_delay();
+	void clear_load_delay();
 	void intepret();
 	void decode_execute(Instruction instr);
 	void reset();
@@ -70,6 +74,7 @@ public:
 
 	//Load and store Instructions
 	void SW(Instruction instr);
+	void LW(Instruction instr);
 
 	//Computational Instructions
 	void LUI(Instruction instr);

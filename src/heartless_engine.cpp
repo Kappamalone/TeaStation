@@ -30,8 +30,31 @@ u32 HeartlessEngine::get_gpr(u32 reg)
 
 void HeartlessEngine::set_gpr(u32 reg, u32 value)
 {
+	if (reg == load_d_slot[0])
+	{
+		clear_load_delay(); //Direct register write overwrites load delay slot
+	}
+
 	gpr[reg] = value;
-	gpr[0] = 0; //Just to be safe
+	execute_load_delay();
+	clear_load_delay();
+	gpr[0] = 0;
+}
+
+void HeartlessEngine::set_load_delay(u32 reg, u32 value)
+{
+	load_d_slot[0] = reg;
+	load_d_slot[1] = value;
+}
+
+void HeartlessEngine::execute_load_delay()
+{
+	gpr[load_d_slot[0]] = load_d_slot[1];
+}
+
+void HeartlessEngine::clear_load_delay()
+{
+	load_d_slot[0] = 0;
 }
 
 void HeartlessEngine::intepret()
@@ -67,6 +90,7 @@ void HeartlessEngine::decode_execute(Instruction instr)
 	case 0b001111: LUI(instr);   break;
 	case 0b001101: ORI(instr);   break;
 	case 0b101011: SW(instr);    break;
+	case 0b100011: LW(instr);    break;
 	case 0b010000: cp0.decode_execute(instr); break;
 	default:
 		printf("[CPU] Unimplemented opcode : %08X\n", instr.raw);
@@ -94,6 +118,17 @@ void HeartlessEngine::SW(Instruction instr)
 	{
 		printf("CACHE WRITE IGNORED\n");
 	}
+}
+
+//Load Word
+//Loads words into memory at addr+s16
+void HeartlessEngine::LW(Instruction instr)
+{
+	auto base = instr.i.rs;
+	auto target = instr.i.rt;
+	auto offset = helpers::sign_extend16(instr.i.imm);
+	auto word = psx->bus.read_value<u32>(offset + get_gpr(base));
+	set_load_delay(target, word);
 }
 
 //Computational Instructions=================================================
@@ -182,7 +217,7 @@ void HeartlessEngine::J(Instruction instr)
 
 //Branch if not equal
 //Branches to relative addr if two regs aren't equal
-//TODO: right branch function
+//TODO: write a branch function
 void HeartlessEngine::BNE(Instruction instr)
 {
 	auto taken = false;
@@ -191,10 +226,14 @@ void HeartlessEngine::BNE(Instruction instr)
 	auto offset = helpers::sign_extend16(instr.i.imm << 2);
 	if (get_gpr(source) != get_gpr(target))
 	{
+		//Explanation of branches for myself 
+		//With the current implementation, pc is set to next_pc every instruction cycle.
+		//Therefore next_pc is actually +4 ahead of where it needs to be.
+		//To compensate for this, we -4 so we get the correct address to branch from
 		taken = true;
-		next_pc += offset - 4; //-4 to compensate for the auto increment done by fetching instructions
+		next_pc += offset - 4;
 	}
-	printf("%08X | BNE [%s]: $%02X, $%02X, $%08X\n", pc - 4, taken ? "taken" : "not taken", source, target, offset);
+	printf("%08X | BNE [%s]: $%02X, $%02X, $%08X\n", pc - 4, taken ? "taken" : "not taken", source, target, next_pc-4);
 }
 
 //SPECIAL============================================
