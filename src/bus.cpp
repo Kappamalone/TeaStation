@@ -32,7 +32,12 @@ template <typename T> auto Bus::read_value(u32 addr) -> T
 	switch (addr)
 	{
 	case KERNEL_START ... KERNEL_END:
-		printf("[Memory] Addr: 0x%08X Unmapped memory read from KERNEL\n", addr);
+		//printf("[Memory] Addr: 0x%08X Unmapped memory read from KERNEL\n", addr);
+		read = helpers::read_vector<T>(kernel.data(), addr - KERNEL_START);
+		break;
+	case KUSEG_START ... KUSEG_END:
+		//printf("[Memory] Addr: 0x%08X Unmapped memory read from KUSEG\n", addr);
+		read = helpers::read_vector<T>(kuseg.data(), addr - KUSEG_START);
 		break;
 	case EXPANSION1_START ... EXPANSION1_END:
 		printf("[Memory] Addr: 0x%08X Unmapped memory read from EXPANSION 1\n", addr);
@@ -47,6 +52,8 @@ template <typename T> auto Bus::read_value(u32 addr) -> T
 	case BIOS_START ... BIOS_END:
 		read = helpers::read_vector<T>(bios.data(), addr - BIOS_START);
 		break;
+	default:
+		printf("[MEMORY][WARN] Addr: 0x%08X Unmapped memory read from BUS\n", addr);
 	}
 	return read;
 }
@@ -61,15 +68,22 @@ template <typename T> auto Bus::write_value(u32 addr, T value)->void
 	switch (addr)
 	{
 	case KERNEL_START ... KERNEL_END:
-		printf("[Memory] Addr: 0x%08X Data: 0x%08X Unmapped memory write from KERNEL\n", addr, value);
+		//printf("[Memory] Addr: 0x%08X Data: 0x%08X Unmapped memory write to KERNEL\n", addr, value);
+		helpers::write_vector<T>(kernel.data(), addr - KERNEL_START,value);
+		break;
+	case KUSEG_START ... KUSEG_END:
+		//printf("[Memory] Addr: 0x%08X Data: 0x%08X Unmapped memory write to KUSEG\n", addr, value);
+		helpers::write_vector<T>(kuseg.data(), addr - KUSEG_START, value);
 		break;
 	case EXPANSION1_START ... EXPANSION1_END:
-		printf("[Memory] Addr: 0x%08X Data: 0x%08X Unmapped memory write from EXPANSION 1\n", addr, value);
+		printf("[Memory] Addr: 0x%08X Data: 0x%08X Unmapped memory write to EXPANSION 1\n", addr, value);
 		break;
 	case SCRATCHPAD_START ... SCRATCHPAD_END:
-		printf("[Memory] Addr: 0x%08X Data: 0x%08X Unmapped memory write from SCRATCHPAD\n", addr, value);
+		printf("[Memory] Addr: 0x%08X Data: 0x%08X Unmapped memory write to SCRATCHPAD\n", addr, value);
 		break;
 	case MMIO_START ... MMIO_END:
+		//Rewrite this by mapping the addresses to their respective names
+		//and only allowing writes if said address exists in map
 		switch (addr)
 		{
 		case 0x1f801000:
@@ -112,13 +126,45 @@ template <typename T> auto Bus::write_value(u32 addr, T value)->void
 			printf("[MMIO][RAM_SIZE] Addr: 0x%08X Data: 0x%08X\n", addr, value);
 			helpers::write_vector<T>(mmio.data(), addr - MMIO_START, value);
 			break;
+		case 0x1f801d80:
+			printf("[MMIO][MAIN VOLUME] Addr: 0x%08X Data: 0x%08X\n", addr, value);
+			helpers::write_vector<T>(mmio.data(), addr - MMIO_START, value);
+			break;
+		case 0x1f801d82: //For some reason this 4 byte register is initialised through two SH's?
+			if (std::is_same<T, u16>::value)
+			{
+				printf("[MMIO][MAIN VOLUME] Addr: 0x%08X Data: 0x%08X\n", addr, value);
+				helpers::write_vector<T>(mmio.data(), addr - MMIO_START, value);
+			}
+			break;
+		case 0x1f801d84:
+			printf("[MMIO][Reverb Output Volume] Addr: 0x%08X Data: 0x%08X\n", addr, value);
+			helpers::write_vector<T>(mmio.data(), addr - MMIO_START, value);
+			break;
+		case 0x1f801d86: //For some reason this 4 byte register is initialised through two SH's?
+			if (std::is_same<T, u16>::value)
+			{
+				printf("[MMIO][Reverb Output Volume] Addr: 0x%08X Data: 0x%08X\n", addr, value);
+				helpers::write_vector<T>(mmio.data(), addr - MMIO_START, value);
+			}
+			break;
+		case 0x1f802041:
+			if (std::is_same<T, u8>::value)
+			{
+				printf("[MMIO][PSX: POST] Addr: 0x%08X Data: 0x%08X\n", addr, value);
+				helpers::write_vector<T>(mmio.data(), addr - MMIO_START, value);
+			}
+			break;
 		default:
-			printf("[Memory] Addr: 0x%08X Data: 0x%08X Unmapped memory write from MMIO\n", addr, value);
+			printf("[Memory] Addr: 0x%08X Data: 0x%08X Unmapped memory write to MMIO\n", addr, value);
+			exit(1);
 		}
 		break;
 	case BIOS_START ... BIOS_END:
 		helpers::write_vector<T>(bios.data(), addr - BIOS_START, value);
 		break;
+	default:
+		printf("[MEMORY][WARN] Addr: 0x%08X Data: 0x%08X Unmapped memory write to BUS\n",addr,value);
 	}
 }
 

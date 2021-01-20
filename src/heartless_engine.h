@@ -73,19 +73,25 @@ public:
 	//INSTRUCTIONS
 
 	//Load and store Instructions
+	void SB(Instruction instr);
+	void SH(Instruction instr);
 	void SW(Instruction instr);
 	void LW(Instruction instr);
 
 	//Computational Instructions
 	void LUI(Instruction instr);
 	void SLL(Instruction instr);
+	void ANDI(Instruction instr);
 	void OR(Instruction instr);
 	void ORI(Instruction instr);
+	void ADDU(Instruction instr);
 	void ADDI(Instruction instr);
 	void ADDIU(Instruction instr);
+	void SLTU(Instruction instr);
 
 	//Jump and Branch Instructions
 	void J(Instruction instr);
+	void JAL(Instruction instr);
 	void BNE(Instruction instr);
 
 	//Special

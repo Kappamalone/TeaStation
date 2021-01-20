@@ -13,6 +13,7 @@ namespace helpers
 	}
 
 	//Writes length-variable value to a vector
+	//TODO: what happens when an u32 value is given to a <u16> write?
 	template <typename T>
 	static constexpr auto write_vector(u8* mem, u32 addr, T value)
 	{

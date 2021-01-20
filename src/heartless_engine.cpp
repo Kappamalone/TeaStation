@@ -76,19 +76,25 @@ void HeartlessEngine::decode_execute(Instruction instr)
 		//Special - Determined by lower 5 bits
 		switch (instr.r.funct)
 		{
-		case 0b000000: SLL(instr); break;
-		case 0b100101: OR(instr);  break;
+		case 0b000000: SLL(instr);  break;
+		case 0b100001: ADDU(instr); break;
+		case 0b100101: OR(instr);   break;
+		case 0b101011: SLTU(instr); break;
 		default:
 			printf("[CPU] Unimplemented opcode : %08X\n", instr.raw);
 			exit(1);
 		}
 		break;
 	case 0b000010: J(instr);     break;
+	case 0b000011: JAL(instr);   break;
 	case 0b000101: BNE(instr);   break;
 	case 0b001000: ADDI(instr);  break;
 	case 0b001001: ADDIU(instr); break;
 	case 0b001111: LUI(instr);   break;
+	case 0b001100: ANDI(instr);  break;
 	case 0b001101: ORI(instr);   break;
+	case 0b101000: SB(instr);    break;
+	case 0b101001: SH(instr);    break;
 	case 0b101011: SW(instr);    break;
 	case 0b100011: LW(instr);    break;
 	case 0b010000: cp0.decode_execute(instr); break;
@@ -102,7 +108,43 @@ void HeartlessEngine::decode_execute(Instruction instr)
 //Load and store Instructions
 
 //IMPORTANT: Every instruction has to have a set_gpr, or the load delay slot won't be updated
+//IMPORTANT: Multiple LW's won't update target register, only after the last LW
 //TODO: Do something about alignments
+
+//TODO: Template the store/loads >:)
+//Stores byte
+void HeartlessEngine::SB(Instruction instr)
+{
+	if (helpers::bitset(cp0.cp_regs[SR], 16))
+	{
+		printf("CACHE WRITE IGNORED\n");
+		return;
+	}
+
+	auto base = instr.i.rs;
+	auto target = instr.i.rt;
+	auto addr = helpers::sign_extend16(instr.i.imm) + get_gpr(base);
+	psx->bus.write_value<u8>(addr, get_gpr(target) & 0xff);
+	set_gpr(0, 0); //To update load delay slot
+	printf("%08X | SB: $%02X, $%08X\n", pc - 4, target, addr);
+}
+
+//Stores half word
+void HeartlessEngine::SH(Instruction instr)
+{
+	if (helpers::bitset(cp0.cp_regs[SR], 16))
+	{
+		printf("CACHE WRITE IGNORED\n");
+		return;
+	}
+
+	auto base = instr.i.rs;
+	auto target = instr.i.rt;
+	auto addr = helpers::sign_extend16(instr.i.imm) + get_gpr(base);
+	psx->bus.write_value<u16>(addr, get_gpr(target) & 0xffff);
+	set_gpr(0, 0); //To update load delay slot
+	printf("%08X | SH: $%02X, $%08X\n", pc - 4, target, addr);
+}
 
 //Store Word
 //Stores word at addr+s16
@@ -116,9 +158,9 @@ void HeartlessEngine::SW(Instruction instr)
 	}
 
 	auto source = instr.i.rs;
-	auto addr = helpers::sign_extend16(instr.i.imm) + get_gpr(source);
 	auto target = instr.i.rt;
-	psx->bus.write_value(addr, get_gpr(target));
+	auto addr = helpers::sign_extend16(instr.i.imm) + get_gpr(source);
+	psx->bus.write_value<u32>(addr, get_gpr(target));
 	set_gpr(0, 0); //To update load delay slot
 	printf("%08X | SW: $%02X, $%08X\n", pc - 4, target, addr);
 }
@@ -160,6 +202,15 @@ void HeartlessEngine::SLL(Instruction instr)
 	printf("%08X | SLL: $%02X, $%02X, $%X\n", pc - 4, destination, source, instr.r.shamt);
 }
 
+void HeartlessEngine::ANDI(Instruction instr)
+{
+	auto imm = instr.i.imm;
+	auto source = instr.i.rs;
+	auto target = instr.i.rt;
+	set_gpr(target, get_gpr(source) & imm);
+	printf("%08X | ANDI: $%02X, $%02X, $%02X\n", pc - 4, target, source, imm);
+}
+
 //OR
 //Bitwise logical OR
 void HeartlessEngine::OR(Instruction instr)
@@ -179,7 +230,17 @@ void HeartlessEngine::ORI(Instruction instr)
 	auto source = instr.i.rs;
 	auto target = instr.i.rt;
 	set_gpr(target, get_gpr(source) | imm);
-	printf("%08X | ORI: $%X, $%X, $%02X\n", pc - 4, target, source, imm);
+	printf("%08X | ORI: $%02X, $%02X, $%02X\n", pc - 4, target, source, imm);
+}
+
+//Add unsigned
+void HeartlessEngine::ADDU(Instruction instr)
+{
+	auto source = instr.r.rs;
+	auto target = instr.r.rt;
+	auto dest = instr.r.rd;
+	set_gpr(dest, get_gpr(source) + get_gpr(target));
+	printf("%08X | ADDU: $%02X, $%02X, $%02X", pc - 4, dest, source, target);
 }
 
 //Add Immediate
@@ -213,6 +274,17 @@ void HeartlessEngine::ADDIU(Instruction instr)
 	printf("%08X | ADDIU: $%02X, $%02X, $%08X\n", pc - 4, target, source, imm);
 }
 
+//Set on less than
+void HeartlessEngine::SLTU(Instruction instr)
+{
+	auto source = instr.r.rs;
+	auto target = instr.r.rt;
+	auto dest = instr.r.rd;
+	auto res = get_gpr(source) < get_gpr(target);
+	set_gpr(dest, res);
+	printf("%08X | SLTU: $%02X, $%02X, $%08X\n", pc - 4, dest, source, target);
+}
+
 //Jump and Branch Instructions===========================================
 
 //Jump
@@ -223,6 +295,17 @@ void HeartlessEngine::J(Instruction instr)
 	next_pc = addr;
 	set_gpr(0, 0); //To update load delay slot
 	printf("%08X | J: $%08X\n", pc - 4, addr);
+}
+
+//Jump and link
+//Jump and store return addr at $31
+void HeartlessEngine::JAL(Instruction instr)
+{
+	//TODO: write a test for this
+	set_gpr(31, next_pc);
+	J(instr);
+	set_gpr(0, 0); //To update load delay slot
+	printf("JAL\n");
 }
 
 //Branch if not equal

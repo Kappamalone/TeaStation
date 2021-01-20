@@ -22,9 +22,9 @@ const char* cop0::reg_name(u32 reg)
 {
 	static const char* reg_names[] =
 	{
-		"INDX","RAND","TLBL","BPC",
-		"CTXT","BDA","PIDMASK","DCIC",
-		"BADV","BDAM","TLBH","BPCM",
+		"N/A","N/A","N/A","BPC",
+		"N/A","BDA","JUMPDEST","DCIC",
+		"BADV","BDAM","N/A","BPCM",
 		"SR","CAUSE","EPC","PRID"
 	};
 	return reg_names[reg];

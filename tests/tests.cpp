@@ -102,7 +102,7 @@ TEST_CASE("TEST: Load Delay Slots")
 	psx.bus.write_value<u32>(0xbfc0'0000, 0x8D410000); //LW $1, 0($10)
 	psx.bus.write_value<u32>(0xbfc0'0004, 0x24010002); //ADDIU $1, $0, 0x2
 	psx.he_cpu.intepret();
-	psx.he_cpu.intepret();
+	psx.he_cpu.intepret(); //ADDIU targets load delay slot and overwrites it
 
 	CHECK(psx.he_cpu.get_gpr(1) == 0x2);
 }
@@ -110,4 +110,12 @@ TEST_CASE("TEST: Load Delay Slots")
 TEST_CASE("TEST: Branch Instructions")
 {
 	//TODO
+}
+
+TEST_CASE("TEST: Random Things")
+{
+	auto a = (u32)(0 > 1);
+	CHECK(a == 0);
+	auto b = (u32)(0 < 1);
+	CHECK(b == 1);
 }
