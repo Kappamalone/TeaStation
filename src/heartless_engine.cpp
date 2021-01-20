@@ -101,34 +101,43 @@ void HeartlessEngine::decode_execute(Instruction instr)
 //INSTRUCTIONS========================================
 //Load and store Instructions
 
+//IMPORTANT: Every instruction has to have a set_gpr, or the load delay slot won't be updated
+//TODO: Do something about alignments
+
 //Store Word
 //Stores word at addr+s16
 void HeartlessEngine::SW(Instruction instr)
 {
 	//SR handles whether or not the write goes to cache or memory
-	if (!helpers::bitset(cp0.cp_regs[SR], 16)) 
-	{
-		auto source = instr.i.rs;
-		auto addr = helpers::sign_extend16(instr.i.imm) + get_gpr(source);
-		auto target = instr.i.rt;
-		psx->bus.write_value(addr, get_gpr(target));
-		printf("%08X | SW: $%02X, $%08X\n", pc - 4, target, addr);
-	}
-	else
+	if (helpers::bitset(cp0.cp_regs[SR], 16))
 	{
 		printf("CACHE WRITE IGNORED\n");
+		return;
 	}
+
+	auto source = instr.i.rs;
+	auto addr = helpers::sign_extend16(instr.i.imm) + get_gpr(source);
+	auto target = instr.i.rt;
+	psx->bus.write_value(addr, get_gpr(target));
+	set_gpr(0, 0); //To update load delay slot
+	printf("%08X | SW: $%02X, $%08X\n", pc - 4, target, addr);
 }
 
 //Load Word
 //Loads words into memory at addr+s16
 void HeartlessEngine::LW(Instruction instr)
 {
+	if (helpers::bitset(cp0.cp_regs[SR], 16))
+	{
+		printf("CACHE READ IGNORED\n");
+		return;
+	}
 	auto base = instr.i.rs;
 	auto target = instr.i.rt;
 	auto offset = helpers::sign_extend16(instr.i.imm);
 	auto word = psx->bus.read_value<u32>(offset + get_gpr(base));
 	set_load_delay(target, word);
+	printf("%08X | LW: $%02X, $%02X, $%08X\n", pc-4,target, base, offset);
 }
 
 //Computational Instructions=================================================
@@ -212,6 +221,7 @@ void HeartlessEngine::J(Instruction instr)
 {
 	auto addr = (pc & 0xf0000000) | (instr.j.target << 2);
 	next_pc = addr;
+	set_gpr(0, 0); //To update load delay slot
 	printf("%08X | J: $%08X\n", pc - 4, addr);
 }
 
@@ -233,6 +243,7 @@ void HeartlessEngine::BNE(Instruction instr)
 		taken = true;
 		next_pc += offset - 4;
 	}
+	set_gpr(0, 0); //To update load delay slot
 	printf("%08X | BNE [%s]: $%02X, $%02X, $%08X\n", pc - 4, taken ? "taken" : "not taken", source, target, next_pc-4);
 }
 

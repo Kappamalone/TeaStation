@@ -82,23 +82,26 @@ TEST_CASE("TEST: Load Delay Slots")
 {
 	psx.reset();
 	psx.bus.write_value<u32>(0xbfc0'0010, 2);
+	psx.he_cpu.gpr[10] = 0xbfc0'0010; //T2 = address of memory holding variable 2
 	psx.bus.write_value<u32>(0xbfc0'0000, 0x24010001); //ADDIU $1, $0, 0x1
-	psx.bus.write_value<u32>(0xbfc0'0004, 0x24220000); //ADDIU $2, $1, 0x0
-	psx.bus.write_value<u32>(0xbfc0'0008, 0x24230000); //ADDIU $3, $1, 0x0
+	psx.bus.write_value<u32>(0xbfc0'0004, 0x8D410000); //LW $1, 0($10)
+	psx.bus.write_value<u32>(0xbfc0'0008, 0x24220000); //ADDIU $2, $1, 0x0
+	psx.bus.write_value<u32>(0xbfc0'000C, 0x24230000); //ADDIU $3, $1, 0x0
 	psx.he_cpu.intepret();
-	psx.he_cpu.load_d_slot[0] = 1;
-	psx.he_cpu.load_d_slot[1] = psx.bus.read_value<u32>(0xbfc0'0010);
+	psx.he_cpu.intepret();
 	psx.he_cpu.intepret();
 	psx.he_cpu.intepret();
 
-	CHECK(psx.he_cpu.get_gpr(2) == 0x1);
-	CHECK(psx.he_cpu.get_gpr(3) == 0x2);
+	CHECK(psx.he_cpu.get_gpr(1) == 0x2);
+	CHECK(psx.he_cpu.get_gpr(2) == 0x1); //Load delay prevents 2 from being loaded
+	CHECK(psx.he_cpu.get_gpr(3) == 0x2); //Load delay finishes after 1 cycle
 
 	psx.reset();
 	psx.bus.write_value<u32>(0xbfc0'0010, 1);
-	psx.bus.write_value<u32>(0xbfc0'0000, 0x24010002); //ADDIU $1, $0, 0x2
-	psx.he_cpu.load_d_slot[0] = 1;
-	psx.he_cpu.load_d_slot[1] = psx.bus.read_value<u32>(0xbfc0'0010);
+	psx.he_cpu.gpr[10] = 0xbfc0'0010; //T2 = address of memory holding variable 2
+	psx.bus.write_value<u32>(0xbfc0'0000, 0x8D410000); //LW $1, 0($10)
+	psx.bus.write_value<u32>(0xbfc0'0004, 0x24010002); //ADDIU $1, $0, 0x2
+	psx.he_cpu.intepret();
 	psx.he_cpu.intepret();
 
 	CHECK(psx.he_cpu.get_gpr(1) == 0x2);

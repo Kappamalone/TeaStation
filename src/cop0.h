@@ -27,6 +27,7 @@ enum cop0_mnemonic
 	PRID
 };
 
+//TODO: bitfields for SR
 class cop0
 {
 public:
