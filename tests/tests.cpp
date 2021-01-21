@@ -118,4 +118,13 @@ TEST_CASE("TEST: Random Things")
 	CHECK(a == 0);
 	auto b = (u32)(0 < 1);
 	CHECK(b == 1);
+
+	/*
+	psx.reset();
+	for (auto& i : psx.bus.bios)
+		i = 0;
+	CHECK(psx.bus.read_value<u32>(0xbfc0'0000) == 0);
+	psx.bus.write_value<u16>(0xbfc0'0000, 0xaabbccdd);
+	CHECK(psx.bus.read_value<u32>(0xbfc0'0000) == 0x0000ccdd);
+	*/
 }

@@ -16,4 +16,3 @@ constexpr u32 MMIO_START = 0x1f801000;
 constexpr u32 MMIO_END = 0x1f802fff;
 constexpr u32 BIOS_START = 0x1fc00000;
 constexpr u32 BIOS_END = 0x1fc7ffff;
-

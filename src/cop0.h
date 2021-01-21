@@ -39,5 +39,7 @@ public:
 	void reset();
 	const char* reg_name(u32 reg);
 	void decode_execute(Instruction instr);
+
 	void MTC0(Instruction instr);
+	void MFC0(Instruction instr);
 };

@@ -57,7 +57,7 @@ template <typename T> auto Bus::read_value(u32 addr) -> T
 	}
 	return read;
 }
-
+//TODO: Why is template instantiation needed here, but not in he.cpp???
 template void Bus::write_value(u32 addr, u8  value);
 template void Bus::write_value(u32 addr, u16 value);
 template void Bus::write_value(u32 addr, u32 value);
@@ -69,7 +69,7 @@ template <typename T> auto Bus::write_value(u32 addr, T value)->void
 	{
 	case KERNEL_START ... KERNEL_END:
 		//printf("[Memory] Addr: 0x%08X Data: 0x%08X Unmapped memory write to KERNEL\n", addr, value);
-		helpers::write_vector<T>(kernel.data(), addr - KERNEL_START,value);
+		helpers::write_vector<T>(kernel.data(), addr - KERNEL_START, value);
 		break;
 	case KUSEG_START ... KUSEG_END:
 		//printf("[Memory] Addr: 0x%08X Data: 0x%08X Unmapped memory write to KUSEG\n", addr, value);
@@ -164,7 +164,7 @@ template <typename T> auto Bus::write_value(u32 addr, T value)->void
 		helpers::write_vector<T>(bios.data(), addr - BIOS_START, value);
 		break;
 	default:
-		printf("[MEMORY][WARN] Addr: 0x%08X Data: 0x%08X Unmapped memory write to BUS\n",addr,value);
+		printf("[MEMORY][WARN] Addr: 0x%08X Data: 0x%08X Unmapped memory write to BUS\n", addr, value);
 	}
 }
 

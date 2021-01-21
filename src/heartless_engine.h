@@ -45,7 +45,6 @@ union Instruction
 	} cop0;
 };
 
-//TODO: separate COP0 into its own class
 class HeartlessEngine
 {
 public:
@@ -73,10 +72,8 @@ public:
 	//INSTRUCTIONS
 
 	//Load and store Instructions
-	void SB(Instruction instr);
-	void SH(Instruction instr);
-	void SW(Instruction instr);
-	void LW(Instruction instr);
+	template <typename T> auto SD(Instruction instr) -> void;
+	template <typename T> auto LD(Instruction instr) -> void;
 
 	//Computational Instructions
 	void LUI(Instruction instr);
@@ -90,8 +87,11 @@ public:
 	void SLTU(Instruction instr);
 
 	//Jump and Branch Instructions
+	void Branch(Instruction instr);
 	void J(Instruction instr);
 	void JAL(Instruction instr);
+	void JR(Instruction instr); //You're the JR to my JAL <3
+	void BEQ(Instruction instr);
 	void BNE(Instruction instr);
 
 	//Special
