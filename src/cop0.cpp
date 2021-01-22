@@ -49,7 +49,7 @@ void cop0::MTC0(Instruction instr)
 	auto rt = instr.cop0.rt;
 	auto rd = instr.cop0.rd;
 	cp_regs[rd] = he_cpu->get_gpr(rt);
-	he_cpu->set_gpr(0,0) //Update load delay
+	he_cpu->set_gpr(0, 0); //Update load delay
 	printf("[COP0] MTC0: $%02X Value: $%08X, COP0 Reg: %s\n", rt, he_cpu->get_gpr(rt), reg_name(rd));
 }
 
@@ -60,5 +60,5 @@ void cop0::MFC0(Instruction instr)
 	auto rt = instr.cop0.rt;
 	auto rd = instr.cop0.rd;
 	he_cpu->set_load_delay(rt, cp_regs[rd]); 
-	printf("[COP0] MFC0: COP0 Reg: %s Value: $%08X, $02X\n", reg_name(rd), cp_regs[rd], rt);
+	printf("[COP0] MFC0: COP0 Reg: %s Value: $%08X, $02X\n", reg_name(rd), cp_regs[rd]);
 }

@@ -17,6 +17,7 @@ void HeartlessEngine::reset()
 {
 	cp0.reset();
 	std::fill(gpr.begin(), gpr.end(), 0);
+	clear_load_delay();
 	HI = 0;
 	LO = 0;
 	pc = 0xbfc0'0000;
@@ -34,7 +35,6 @@ void HeartlessEngine::set_gpr(u32 reg, u32 value)
 	{
 		clear_load_delay(); //Direct register write overwrites load delay slot
 	}
-
 	gpr[reg] = value;
 	execute_load_delay();
 	clear_load_delay();
@@ -78,7 +78,9 @@ void HeartlessEngine::decode_execute(Instruction instr)
 		{
 		case 0b000000: SLL(instr);    break;
 		case 0b001000: JR(instr);     break;
+		case 0b100000: ADD(instr);    break;
 		case 0b100001: ADDU(instr);   break;
+		case 0b100100: AND(instr);    break;
 		case 0b100101: OR(instr);     break;
 		case 0b101011: SLTU(instr);   break;
 		default:
@@ -187,6 +189,15 @@ void HeartlessEngine::ANDI(Instruction instr)
 	printf("%08X | ANDI: $%02X, $%02X, $%02X\n", pc - 4, target, source, imm);
 }
 
+void HeartlessEngine::AND(Instruction instr)
+{
+	auto source = instr.r.rs;
+	auto target = instr.r.rt;
+	auto destination = instr.r.rd;
+	set_gpr(destination, get_gpr(source) & get_gpr(target));
+	printf("%08X | AND: $%02X, $%02X, $%02X\n", pc - 4, destination, source, target);
+}
+
 //OR
 //Bitwise logical OR
 void HeartlessEngine::OR(Instruction instr)
@@ -209,6 +220,23 @@ void HeartlessEngine::ORI(Instruction instr)
 	printf("%08X | ORI: $%02X, $%02X, $%02X\n", pc - 4, target, source, imm);
 }
 
+void HeartlessEngine::ADD(Instruction instr)
+{
+	auto source = instr.r.rs;
+	auto target = instr.r.rt;
+	auto dest = instr.r.rd;
+	auto res = get_gpr(source) + get_gpr(target);
+	bool overflow = ((get_gpr(source) ^ res) & (get_gpr(target) ^ res));
+	if (overflow)
+	{
+		printf("ADD | Raise exception!\n");
+		exit(1);
+		return;
+	}
+	set_gpr(dest, res);
+	printf("%08X | ADD: $%02X, $%02X, $%02X\n", pc - 4, dest, source, target);
+}
+
 //Add unsigned
 void HeartlessEngine::ADDU(Instruction instr)
 {
@@ -226,9 +254,9 @@ void HeartlessEngine::ADDI(Instruction instr)
 	auto source_reg = get_gpr(instr.i.rs);
 	auto target = instr.i.rt;
 	auto imm = helpers::sign_extend_to_u32<s16>(instr.i.imm);
-	auto result = source_reg + imm;
+	auto res = source_reg + imm;
 
-	bool overflow = ((source_reg ^ result) & (imm ^ result)) >> 31; //TODO: understand this better
+	bool overflow = ((source_reg ^ res) & (imm ^ res)) >> 31; //TODO: understand this better
 	if (overflow)
 	{
 		printf("ADDI | Raise exception!\n");
@@ -236,7 +264,7 @@ void HeartlessEngine::ADDI(Instruction instr)
 		return;
 	}
 
-	set_gpr(target, result);
+	set_gpr(target, res);
 	printf("%08X | ADDI: $%X, $%X, $%04X\n", pc - 4, target, source_reg, imm);
 }
 

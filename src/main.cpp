@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <doctest.h>
-#include <Emulator.h>
+#include <emulator.h>
 
+//TODO: rename `emulator` to `Teastation` for extra style points
 int main()
 {
 	//Doctest

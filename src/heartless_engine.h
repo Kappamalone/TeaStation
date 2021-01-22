@@ -79,8 +79,10 @@ public:
 	void LUI(Instruction instr);
 	void SLL(Instruction instr);
 	void ANDI(Instruction instr);
+	void AND(Instruction instr);
 	void OR(Instruction instr);
 	void ORI(Instruction instr);
+	void ADD(Instruction instr);
 	void ADDU(Instruction instr);
 	void ADDI(Instruction instr);
 	void ADDIU(Instruction instr);

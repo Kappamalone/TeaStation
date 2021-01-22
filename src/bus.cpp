@@ -14,11 +14,43 @@ Bus::Bus(Emulator* psx)
 	scratchpad.resize(KILOBYTE);
 	mmio.resize(KILOBYTE * 8);
 	bios.resize(KILOBYTE * 512);
+
 	load_bios();
+	init_mmio_regs();
 }
 
 Bus::~Bus()
 {
+}
+
+void Bus::init_mmio_regs()
+{
+	//Setup MMIO regs map
+	//FIXME: 0x1F801060 should also be in the u16 mmio
+	//Memory Control 1
+	mmio_u32_regs[0x1f801000] = "EXPANSION 1 BASEADDR";
+	mmio_u32_regs[0x1f801004] = "EXPANSION 2 BASEADDR";
+	mmio_u32_regs[0x1f801008] = "EXPANSION 1 DELAY/SIZE";
+	mmio_u32_regs[0x1f80100c] = "EXPANSION 3 DELAY/SIZE";
+	mmio_u32_regs[0x1f801010] = "BIOS ROM";
+	mmio_u32_regs[0x1f801014] = "SPU_DELAY";
+	mmio_u32_regs[0x1f801018] = "CDROM_DELAY";
+	mmio_u32_regs[0x1f80101c] = "EXPANSION 2 DELAY/SIZE";
+	mmio_u32_regs[0x1f801020] = "COM_DELAY";
+
+	//Memory Control 2
+	mmio_u32_regs[0x1f801060] = "RAM_SIZE";
+
+	//SPU Control Registers
+	mmio_u32_regs[0x1f801d80] = "MAIN VOLUME";
+	mmio_u16_regs[0x1f801d80] = "MAIN VOLUME LOW";
+	mmio_u16_regs[0x1f801d82] = "MAIN VOLUME HIGH";
+	mmio_u32_regs[0x1f801d84] = "REVERB OUTPUT VOLUME";
+	mmio_u16_regs[0x1f801d84] = "REVERB OUTPUT VOLUME LOW";
+	mmio_u16_regs[0x1f801d86] = "REVERB OUTPUT VOLUME HIGH";
+
+	//Expansion Region 2 - Int/Dip/Post
+	mmio_u8_regs[0x1f802041] = "PSX: POST";
 }
 
 template u8  Bus::read_value(u32 addr);
@@ -82,84 +114,42 @@ template <typename T> auto Bus::write_value(u32 addr, T value)->void
 		printf("[Memory] Addr: 0x%08X Data: 0x%08X Unmapped memory write to SCRATCHPAD\n", addr, value);
 		break;
 	case MMIO_START ... MMIO_END:
-		//Rewrite this by mapping the addresses to their respective names
-		//and only allowing writes if said address exists in map
-		switch (addr)
+	{
+		bool read = false;
+		if (std::is_same<u8, T>::value) //u8 mmio regs
 		{
-		case 0x1f801000:
-			printf("[MMIO][EXPANSION 1 BASEADDR]  Addr: 0x%08X Data: 0x%08X\n", addr, value);
-			helpers::write_vector<T>(mmio.data(), addr - MMIO_START, value);
-			break;
-		case 0x1f801004:
-			printf("[MMIO][EXPANSION 2 BASEADDR]  Addr: 0x%08X Data: 0x%08X\n", addr, value);
-			helpers::write_vector<T>(mmio.data(), addr - MMIO_START, value);
-			break;
-		case 0x1f801008:
-			printf("[MMIO][EXPANSION 1 DELAY/SIZE]  Addr: 0x%08X Data: 0x%08X\n", addr, value);
-			helpers::write_vector<T>(mmio.data(), addr - MMIO_START, value);
-			break;
-		case 0x1f80100C:
-			printf("[MMIO][EXPANSION 3 DELAY/SIZE] Addr: 0x%08X Data: 0x%08X\n", addr, value);
-			helpers::write_vector<T>(mmio.data(), addr - MMIO_START, value);
-			break;
-		case 0x1f801010:
-			printf("[MMIO][BIOS ROM] Addr: 0x%08X Data: 0x%08X\n", addr, value);
-			helpers::write_vector<T>(mmio.data(), addr - MMIO_START, value);
-			break;
-		case 0x1f801014:
-			printf("[MMIO][SPU_DELAY] Addr: 0x%08X Data: 0x%08X\n", addr, value);
-			helpers::write_vector<T>(mmio.data(), addr - MMIO_START, value);
-			break;
-		case 0x1f801018:
-			printf("[MMIO][CDROM_DELAY] Addr: 0x%08X Data: 0x%08X\n", addr, value);
-			helpers::write_vector<T>(mmio.data(), addr - MMIO_START, value);
-			break;
-		case 0x1f80101C:
-			printf("[MMIO][EXPANSION 2 DELAY/SIZE] Addr: 0x%08X Data: 0x%08X\n", addr, value);
-			helpers::write_vector<T>(mmio.data(), addr - MMIO_START, value);
-			break;
-		case 0x1f801020:
-			printf("[MMIO][COM_DELAY] Addr: 0x%08X Data: 0x%08X\n", addr, value);
-			helpers::write_vector<T>(mmio.data(), addr - MMIO_START, value);
-			break;
-		case 0x1f801060:
-			printf("[MMIO][RAM_SIZE] Addr: 0x%08X Data: 0x%08X\n", addr, value);
-			helpers::write_vector<T>(mmio.data(), addr - MMIO_START, value);
-			break;
-		case 0x1f801d80:
-			printf("[MMIO][MAIN VOLUME] Addr: 0x%08X Data: 0x%08X\n", addr, value);
-			helpers::write_vector<T>(mmio.data(), addr - MMIO_START, value);
-			break;
-		case 0x1f801d82: //For some reason this 4 byte register is initialised through two SH's?
-			if (std::is_same<T, u16>::value)
+			if (mmio_u8_regs.count(addr) > 0)
 			{
-				printf("[MMIO][MAIN VOLUME] Addr: 0x%08X Data: 0x%08X\n", addr, value);
+				read = true;
 				helpers::write_vector<T>(mmio.data(), addr - MMIO_START, value);
+				printf("[MMIO][%s] Addr: 0x%08X Data: 0x%02X\n", mmio_u8_regs[addr], addr, value);
 			}
-			break;
-		case 0x1f801d84:
-			printf("[MMIO][Reverb Output Volume] Addr: 0x%08X Data: 0x%08X\n", addr, value);
-			helpers::write_vector<T>(mmio.data(), addr - MMIO_START, value);
-			break;
-		case 0x1f801d86: //For some reason this 4 byte register is initialised through two SH's?
-			if (std::is_same<T, u16>::value)
+		}
+		else if (std::is_same<u16, T>::value) //u16 mmio regs
+		{
+			if (mmio_u16_regs.count(addr) > 0)
 			{
-				printf("[MMIO][Reverb Output Volume] Addr: 0x%08X Data: 0x%08X\n", addr, value);
+				read = true;
 				helpers::write_vector<T>(mmio.data(), addr - MMIO_START, value);
+				printf("[MMIO][%s] Addr: 0x%08X Data: 0x%02X\n", mmio_u16_regs[addr], addr, value);
 			}
-			break;
-		case 0x1f802041:
-			if (std::is_same<T, u8>::value)
+		}
+		else if (std::is_same<u32, T>::value) //u32 mmio regs
+		{
+			if (mmio_u32_regs.count(addr) > 0)
 			{
-				printf("[MMIO][PSX: POST] Addr: 0x%08X Data: 0x%08X\n", addr, value);
+				read = true;
 				helpers::write_vector<T>(mmio.data(), addr - MMIO_START, value);
+				printf("[MMIO][%s] Addr: 0x%08X Data: 0x%02X\n", mmio_u32_regs[addr], addr, value);
 			}
-			break;
-		default:
-			printf("[Memory] Addr: 0x%08X Data: 0x%08X Unmapped memory write to MMIO\n", addr, value);
+		}
+		if (!read)
+		{
+			printf("[MMIO] Addr: 0x%08X Unmapped MMIO Size: %d\n", addr,sizeof(T));
 			exit(1);
 		}
 		break;
+	}
 	case BIOS_START ... BIOS_END:
 		helpers::write_vector<T>(bios.data(), addr - BIOS_START, value);
 		break;
