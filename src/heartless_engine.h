@@ -6,8 +6,7 @@
 //Forward declaration
 class Emulator;
 
-//Bitfield to obtain required parameters for i,j and r type encodings
-//TODO: make op parameter accessible
+//Bitfield to obtain required parameters for i,j,r and cop0 type encodings
 union Instruction
 {
 	u32 raw;

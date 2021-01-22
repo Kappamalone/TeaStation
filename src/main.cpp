@@ -14,8 +14,8 @@ int main()
 	if (ctx.shouldExit())
 		return res;
 
-	Emulator psx;
-	psx.run_Emulator();
+	Emulator npsx;
+	npsx.run_Emulator();
 
 	return res;
 }

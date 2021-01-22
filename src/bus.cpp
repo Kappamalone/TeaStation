@@ -38,6 +38,10 @@ void Bus::init_mmio_regs()
 	mmio_u32_regs[0x1f80101c] = "EXPANSION 2 DELAY/SIZE";
 	mmio_u32_regs[0x1f801020] = "COM_DELAY";
 
+	//Interrupt Control
+	//FIXME: Is Interrupt mask 32 bits or 16 bits??
+	mmio_u32_regs[0x1f801074] = "I_MASK";
+
 	//Memory Control 2
 	mmio_u32_regs[0x1f801060] = "RAM_SIZE";
 
@@ -64,18 +68,17 @@ template <typename T> auto Bus::read_value(u32 addr) -> T
 	switch (addr)
 	{
 	case KERNEL_START ... KERNEL_END:
-		//printf("[Memory] Addr: 0x%08X Unmapped memory read from KERNEL\n", addr);
 		read = helpers::read_vector<T>(kernel.data(), addr - KERNEL_START);
 		break;
 	case KUSEG_START ... KUSEG_END:
-		//printf("[Memory] Addr: 0x%08X Unmapped memory read from KUSEG\n", addr);
 		read = helpers::read_vector<T>(kuseg.data(), addr - KUSEG_START);
 		break;
 	case EXPANSION1_START ... EXPANSION1_END:
-		printf("[Memory] Addr: 0x%08X Unmapped memory read from EXPANSION 1\n", addr);
+		read = helpers::read_vector<T>(expansion1.data(), addr - EXPANSION1_START);
 		break;
 	case SCRATCHPAD_START ... SCRATCHPAD_END:
 		printf("[Memory] Addr: 0x%08X Unmapped memory read from SCRATCHPAD\n", addr);
+		exit(1);
 		break;
 	case MMIO_START ... MMIO_END:
 		printf("[Memory] Addr: 0x%08X Mapped-ish? memory read from MMIO\n", addr);
@@ -108,7 +111,8 @@ template <typename T> auto Bus::write_value(u32 addr, T value)->void
 		helpers::write_vector<T>(kuseg.data(), addr - KUSEG_START, value);
 		break;
 	case EXPANSION1_START ... EXPANSION1_END:
-		printf("[Memory] Addr: 0x%08X Data: 0x%08X Unmapped memory write to EXPANSION 1\n", addr, value);
+		//printf("[Memory] Addr: 0x%08X Data: 0x%08X Unmapped memory write to EXPANSION 1\n", addr, value);
+		helpers::write_vector<T>(expansion1.data(), addr - EXPANSION1_START, value);
 		break;
 	case SCRATCHPAD_START ... SCRATCHPAD_END:
 		printf("[Memory] Addr: 0x%08X Data: 0x%08X Unmapped memory write to SCRATCHPAD\n", addr, value);
@@ -116,6 +120,7 @@ template <typename T> auto Bus::write_value(u32 addr, T value)->void
 	case MMIO_START ... MMIO_END:
 	{
 		bool read = false;
+
 		if (std::is_same<u8, T>::value) //u8 mmio regs
 		{
 			if (mmio_u8_regs.count(addr) > 0)
@@ -146,7 +151,7 @@ template <typename T> auto Bus::write_value(u32 addr, T value)->void
 		if (!read)
 		{
 			printf("[MMIO] Addr: 0x%08X Unmapped MMIO Size: %d\n", addr,sizeof(T));
-			exit(1);
+			//exit(1);
 		}
 		break;
 	}
@@ -154,7 +159,9 @@ template <typename T> auto Bus::write_value(u32 addr, T value)->void
 		helpers::write_vector<T>(bios.data(), addr - BIOS_START, value);
 		break;
 	default:
+		if (addr == 0xFFFE0130) { return; } //KUSEG2 addr
 		printf("[MEMORY][WARN] Addr: 0x%08X Data: 0x%08X Unmapped memory write to BUS\n", addr, value);
+		//exit(1);
 	}
 }
 
@@ -190,6 +197,4 @@ void Bus::load_bios()
 
 	bios.insert(bios.begin(), std::istream_iterator<u8>(file), std::istream_iterator <u8>());
 	file.close();
-
-	file.seekg(0, std::ios::end);
 }

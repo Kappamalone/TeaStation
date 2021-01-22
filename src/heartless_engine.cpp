@@ -20,8 +20,8 @@ void HeartlessEngine::reset()
 	clear_load_delay();
 	HI = 0;
 	LO = 0;
-	pc = 0xbfc0'0000;
-	next_pc = 0xbfc0'0004;
+	pc = 0xbfc00000;
+	next_pc = 0xbfc00004;
 }
 
 u32 HeartlessEngine::get_gpr(u32 reg)
@@ -59,7 +59,11 @@ void HeartlessEngine::clear_load_delay()
 
 void HeartlessEngine::intepret()
 {
-	//TODO: Branch delay slot has incorrect address when logging
+	if ((pc & 0x3) != 0)
+	{
+		printf("[ERROR] Unaligned PC: %08X", pc);
+	}
+
 	Instruction instr;
 	instr.raw = psx->bus.read_value<u32>(pc);
 	pc = next_pc;
@@ -180,15 +184,6 @@ void HeartlessEngine::SLL(Instruction instr)
 	printf("%08X | SLL: $%02X, $%02X, $%X\n", pc - 4, destination, source, instr.r.shamt);
 }
 
-void HeartlessEngine::ANDI(Instruction instr)
-{
-	auto imm = instr.i.imm;
-	auto source = instr.i.rs;
-	auto target = instr.i.rt;
-	set_gpr(target, get_gpr(source) & imm);
-	printf("%08X | ANDI: $%02X, $%02X, $%02X\n", pc - 4, target, source, imm);
-}
-
 void HeartlessEngine::AND(Instruction instr)
 {
 	auto source = instr.r.rs;
@@ -196,6 +191,15 @@ void HeartlessEngine::AND(Instruction instr)
 	auto destination = instr.r.rd;
 	set_gpr(destination, get_gpr(source) & get_gpr(target));
 	printf("%08X | AND: $%02X, $%02X, $%02X\n", pc - 4, destination, source, target);
+}
+
+void HeartlessEngine::ANDI(Instruction instr)
+{
+	auto imm = instr.i.imm;
+	auto source = instr.i.rs;
+	auto target = instr.i.rt;
+	set_gpr(target, get_gpr(source) & imm);
+	printf("%08X | ANDI: $%02X, $%02X, $%02X\n", pc - 4, target, source, imm);
 }
 
 //OR
@@ -295,6 +299,11 @@ void HeartlessEngine::SLTU(Instruction instr)
 void HeartlessEngine::Branch(Instruction instr)
 {
 	auto offset = helpers::sign_extend_to_u32<s16>(instr.i.imm << 2);
+	//Explanation of branches for myself
+	//With the current implementation, pc is set to next_pc every instruction cycle.
+	//Therefore next_pc is actually +4 ahead of where it needs to be
+	//(Which is a pointer to the next instruction) To compensate for this, we -4
+	//so we get the correct address to branch from
 	next_pc += offset - 4;
 }
 
@@ -313,10 +322,9 @@ void HeartlessEngine::J(Instruction instr)
 void HeartlessEngine::JAL(Instruction instr)
 {
 	//TODO: write a test for this
-	set_gpr(31, next_pc);
+	set_gpr(31, next_pc); 
 	printf("JAL ->");
 	J(instr);
-	set_gpr(0, 0); //To update load delay slot
 }
 
 //Jump register
@@ -325,7 +333,7 @@ void HeartlessEngine::JR(Instruction instr)
 	auto source = instr.r.rs;
 	next_pc = get_gpr(source);
 	set_gpr(0, 0); //To update load delay slot
-	printf("%08X | JR: $%02X\n", pc - 4, get_gpr(source));
+	printf("%08X | JR: $%02X\n", pc - 4, instr.r.rs);
 }
 
 //Branch if equal
@@ -337,11 +345,6 @@ void HeartlessEngine::BEQ(Instruction instr)
 	auto target = instr.i.rt;
 	if (get_gpr(source) == get_gpr(target))
 	{
-		//Explanation of branches for myself
-		//With the current implementation, pc is set to next_pc every instruction cycle.
-		//Therefore next_pc is actually +4 ahead of where it needs to be
-		//(Which is a pointer to the next instruction) To compensate for this, we -4
-		//so we get the correct address to branch from
 		taken = true;
 		Branch(instr);
 	}
