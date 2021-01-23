@@ -6,16 +6,16 @@
 int main()
 {
 	//Doctest
-	doctest::Context ctx;
+	/*doctest::Context ctx;
 	ctx.setOption("abort-after", 5);
 	ctx.applyCommandLine(__argc, __argv);
 	ctx.setOption("no-breaks", true);
 	int res = ctx.run();
 	if (ctx.shouldExit())
-		return res;
+		return res;*/
 
 	Emulator npsx;
 	npsx.run_Emulator();
 
-	return res;
+	//return res;
 }

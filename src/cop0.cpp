@@ -38,6 +38,7 @@ void cop0::decode_execute(Instruction instr)
 	case 0b00100: MTC0(instr); break;
 	default:
 		printf("[COP0] Unimplemented opcode : %08X\n", instr.raw);
+		he_cpu->print_gpr();
 		exit(1);
 	}
 }

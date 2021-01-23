@@ -1,3 +1,4 @@
+#include <iostream>
 #include <heartless_engine.h>
 #include <emulator.h>
 #include <types.h>
@@ -22,6 +23,15 @@ void HeartlessEngine::reset()
 	LO = 0;
 	pc = 0xbfc00000;
 	next_pc = 0xbfc00004;
+}
+
+void HeartlessEngine::print_gpr()
+{
+	printf("\n");
+	for (int i = 0; i < 16; i++)
+	{
+		printf("r%02d: %08X\t\tr%02d: %08X\n", i, gpr[i], i + 16, gpr[i + 16]);
+	}
 }
 
 u32 HeartlessEngine::get_gpr(u32 reg)
@@ -64,12 +74,36 @@ void HeartlessEngine::intepret()
 		printf("[ERROR] Unaligned PC: %08X", pc);
 	}
 
-	Instruction instr;
-	instr.raw = psx->bus.read_value<u32>(pc);
-	pc = next_pc;
-	next_pc += 4;
+	//Okay up till 0xbfc0'42f0
+	//and also 0xbfc042c4
+	//and 0xBFC0DB0C
+	auto breakpoint = 0xbfc0db10;
+	if (pc == breakpoint)
+	{
+		print_gpr();
+		getchar();
+		step = true;
+	}
+	if (!step)
+	{
+		Instruction instr;
+		instr.raw = psx->bus.read_value<u32>(pc);
+		pc = next_pc;
+		next_pc += 4;
 
-	decode_execute(instr);
+		decode_execute(instr);
+	}
+	else
+	{
+		Instruction instr;
+		instr.raw = psx->bus.read_value<u32>(pc);
+		pc = next_pc;
+		next_pc += 4;
+
+		decode_execute(instr);
+		print_gpr();
+		getchar();
+	}
 }
 
 void HeartlessEngine::decode_execute(Instruction instr)
@@ -82,13 +116,14 @@ void HeartlessEngine::decode_execute(Instruction instr)
 		{
 		case 0b000000: SLL(instr);    break;
 		case 0b001000: JR(instr);     break;
-		case 0b100000: ADD(instr);    break;
+		//case 0b100000: ADD(instr);    break;
 		case 0b100001: ADDU(instr);   break;
 		case 0b100100: AND(instr);    break;
 		case 0b100101: OR(instr);     break;
 		case 0b101011: SLTU(instr);   break;
 		default:
 			printf("[CPU] Unimplemented opcode : %08X\n", instr.raw);
+			print_gpr();
 			exit(1);
 		}
 		break;
@@ -109,7 +144,7 @@ void HeartlessEngine::decode_execute(Instruction instr)
 	case 0b010000: cp0.decode_execute(instr); break;
 	default:
 		printf("[CPU] Unimplemented opcode : %08X\n", instr.raw);
-		printf("[POST] Status: %c", psx->bus.read_value<u8>(0x1f802041));
+		print_gpr();
 		exit(1);
 	}
 }

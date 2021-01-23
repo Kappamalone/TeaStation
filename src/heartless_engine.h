@@ -57,10 +57,13 @@ public:
 	u32 pc; //Program counter
 	u32 next_pc; //Simulating the pipeline
 
+	bool step = false;
+
 	HeartlessEngine(Emulator* psx);
 	~HeartlessEngine();
 	u32 get_gpr(u32 reg);
 	void set_gpr(u32 reg, u32 value);
+	void print_gpr();
 	void set_load_delay(u32 reg, u32 value);
 	void execute_load_delay();
 	void clear_load_delay();
