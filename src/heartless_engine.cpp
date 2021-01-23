@@ -77,8 +77,8 @@ void HeartlessEngine::intepret()
 	//Okay up till 0xbfc0'42f0
 	//and also 0xbfc042c4
 	//and 0xBFC0DB0C
-	auto breakpoint = 0xbfc0db10;
-	if (pc == breakpoint)
+	auto breakpoint = 0xbfc0db14;
+	if (pc == 0)
 	{
 		print_gpr();
 		getchar();
@@ -116,7 +116,7 @@ void HeartlessEngine::decode_execute(Instruction instr)
 		{
 		case 0b000000: SLL(instr);    break;
 		case 0b001000: JR(instr);     break;
-		//case 0b100000: ADD(instr);    break;
+		case 0b100000: ADD(instr);    break;
 		case 0b100001: ADDU(instr);   break;
 		case 0b100100: AND(instr);    break;
 		case 0b100101: OR(instr);     break;
@@ -213,7 +213,7 @@ void HeartlessEngine::LUI(Instruction instr)
 
 void HeartlessEngine::SLL(Instruction instr)
 {
-	auto source = instr.r.rs;
+	auto source = instr.r.rt;
 	auto destination = instr.r.rd;
 	set_gpr(destination, get_gpr(source) << instr.r.shamt);
 	printf("%08X | SLL: $%02X, $%02X, $%X\n", pc - 4, destination, source, instr.r.shamt);
@@ -261,11 +261,11 @@ void HeartlessEngine::ORI(Instruction instr)
 
 void HeartlessEngine::ADD(Instruction instr)
 {
-	auto source = instr.r.rs;
-	auto target = instr.r.rt;
+	auto source_reg = get_gpr(instr.r.rs);
+	auto target_reg = get_gpr(instr.r.rt);
 	auto dest = instr.r.rd;
-	auto res = get_gpr(source) + get_gpr(target);
-	bool overflow = ((get_gpr(source) ^ res) & (get_gpr(target) ^ res));
+	auto res = source_reg + target_reg;
+	bool overflow = ((source_reg>>31 == target_reg)>>31 && (source_reg>>31 != res>>31));
 	if (overflow)
 	{
 		printf("ADD | Raise exception!\n");
@@ -273,7 +273,7 @@ void HeartlessEngine::ADD(Instruction instr)
 		return;
 	}
 	set_gpr(dest, res);
-	printf("%08X | ADD: $%02X, $%02X, $%02X\n", pc - 4, dest, source, target);
+	printf("%08X | ADD: $%02X, $%02X, $%02X\n", pc - 4, dest, instr.r.rs, instr.r.rt);
 }
 
 //Add unsigned
@@ -295,7 +295,7 @@ void HeartlessEngine::ADDI(Instruction instr)
 	auto imm = helpers::sign_extend_to_u32<s16>(instr.i.imm);
 	auto res = source_reg + imm;
 
-	bool overflow = ((source_reg ^ res) & (imm ^ res)) >> 31; //TODO: understand this better
+	bool overflow = ((source_reg>>31 == imm>>31) && (source_reg>>31 != res>>31)); //TODO: understand this better
 	if (overflow)
 	{
 		printf("ADDI | Raise exception!\n");
@@ -308,7 +308,7 @@ void HeartlessEngine::ADDI(Instruction instr)
 }
 
 //Add Upper Immediate
-//Adds imm+s16 and stores to rt
+//Adds reg+s16 and stores to rt
 void HeartlessEngine::ADDIU(Instruction instr)
 {
 	auto source = instr.i.rs;
