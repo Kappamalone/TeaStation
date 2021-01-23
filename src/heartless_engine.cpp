@@ -72,13 +72,12 @@ void HeartlessEngine::intepret()
 	if ((pc & 0x3) != 0)
 	{
 		printf("[ERROR] Unaligned PC: %08X", pc);
+		exit(1);
 	}
 
-	//Okay up till 0xbfc0'42f0
-	//and also 0xbfc042c4
-	//and 0xBFC0DB0C
-	auto breakpoint = 0xbfc0db14;
-	if (pc == 0)
+
+	auto breakpoint = 0;
+	if (pc == breakpoint)
 	{
 		print_gpr();
 		getchar();
@@ -169,9 +168,17 @@ void HeartlessEngine::SD(Instruction instr)
 	auto base = instr.i.rs;
 	auto target = instr.i.rt;
 	auto addr = helpers::sign_extend_to_u32<s16>(instr.i.imm) + get_gpr(base);
+
 	psx->bus.write_value<T>(addr, get_gpr(target));
 	set_gpr(0, 0); //To update load delay slot
-	printf("%08X | SD(%d): $%02X, $%08X\n", pc - 4,sizeof(T), target, addr);
+	printf("%08X | Store(%d): $%02X, $%08X\n", pc - 4,sizeof(T), target, addr);
+
+	if (addr == 0xA000B9B0)
+	{
+		printf("found ya\n");
+		printf("%08X", get_gpr(target));
+		getchar();
+	}
 }
 
 //Load data from s16 + base
@@ -183,20 +190,20 @@ void HeartlessEngine::LD(Instruction instr)
 		printf("CACHE READ IGNORED\n");
 		return;
 	}
+
 	auto base = instr.i.rs;
 	auto target = instr.i.rt;
-	auto offset = helpers::sign_extend_to_u32<s16>(instr.i.imm);
-	auto word = psx->bus.read_value<T>(offset + get_gpr(base));
+	auto addr = helpers::sign_extend_to_u32<s16>(instr.i.imm) + get_gpr(base);
+	auto word = psx->bus.read_value<T>(addr);
 	if (std::is_same<T, u8>::value)
-	{
+
 		word = helpers::sign_extend_to_u32<s8>(word);
-	}
-	else if (std::is_same<T, u16>::value)
-	{
+	if (std::is_same<T, u16>::value)
 		word = helpers::sign_extend_to_u32<s16>(word);
-	}
+
+	printf("value of word is: %08X addr: %08X\n", word,addr);
 	set_load_delay(target, word);
-	printf("%08X | LD(%d): $%02X, $%02X, $%X\n", pc - 4, sizeof(T), target, base, offset);
+	printf("%08X | Load(%d): $%02X, $%02X, $%X\n", pc - 4, sizeof(T), target, base, addr);
 }
 
 //Computational Instructions=================================================
